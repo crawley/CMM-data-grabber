@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import au.edu.uq.cmm.aclslib.config.StaticFacilityConfig;
+import au.edu.uq.cmm.paul.status.Aggregation;
 
 public class StaticPaulFacility extends StaticFacilityConfig implements
         GrabberFacilityConfig {
@@ -35,6 +36,7 @@ public class StaticPaulFacility extends StaticFacilityConfig implements
     private GrabberFacilityConfig.FileArrivalMode fileArrivalMode = 
             GrabberFacilityConfig.FileArrivalMode.DIRECT;
     private boolean userOperated;
+    private Aggregation aggregation;
 
     @Override
     public List<? extends DatafileTemplateConfig> getDatafileTemplates() {
@@ -88,5 +90,12 @@ public class StaticPaulFacility extends StaticFacilityConfig implements
 
     public void setUserOperated(boolean userOperated) {
         this.userOperated = userOperated;
+    
+    public Aggregation getAggregation() {
+	return aggregation;
+    }
+
+    public void setAggregation(Aggregation aggregation) {
+	this.aggregation = aggregation;
     }
 }

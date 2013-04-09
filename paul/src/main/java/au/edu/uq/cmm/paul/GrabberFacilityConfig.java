@@ -22,6 +22,7 @@ package au.edu.uq.cmm.paul;
 import java.util.List;
 
 import au.edu.uq.cmm.aclslib.config.FacilityConfig;
+import au.edu.uq.cmm.paul.status.Aggregation;
 
 /**
  * Configuration details API for a proxied ACLS facility.  Some
@@ -58,6 +59,12 @@ public interface GrabberFacilityConfig extends FacilityConfig {
      * the last file modification event before the grabber attempts to grab the file.
      */
     int getFileSettlingTime();
+
+    /**
+     * The aggregation determines the strategy used for aggregating datafiles
+     * into datasets
+     */
+	Aggregation getAggregation();
     
     public enum FileArrivalMode {
         /**

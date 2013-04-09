@@ -79,9 +79,9 @@ public class Facility implements FacilityConfig {
     private FacilityStatus status;
     private boolean multiplexed = false;
     private boolean userOperated = true;
-
     private FileArrivalMode fileArrivalMode;
-    
+    private Aggregation aggregation;
+
 
     public Facility() {
         super();
@@ -108,6 +108,7 @@ public class Facility implements FacilityConfig {
         multiplexed = facility.isMultiplexed();
         userOperated = facility.isUserOperated();
         fileArrivalMode = facility.getFileArrivalMode();
+        aggregation = facility.getAggregation();
     }
     
     public String getAddress() {
@@ -148,6 +149,11 @@ public class Facility implements FacilityConfig {
 
     public boolean isMultiplexed() {
         return multiplexed;
+    }
+    
+    @Enumerated(EnumType.STRING)
+    public Aggregation getAggregation() {
+    	return aggregation;
     }
 
     @JsonIgnore
@@ -257,6 +263,10 @@ public class Facility implements FacilityConfig {
         this.id = id;
     }
 
+    public void setAggregation(Aggregation aggregation) {
+	this.aggregation = aggregation;
+    }
+
     @JsonIgnore
     @Transient
     public FacilityStatus getStatus() {
@@ -298,6 +308,8 @@ public class Facility implements FacilityConfig {
                 + datafileTemplates + ", disabled=" + disabled
                 + ", fileArrivalMode=" + fileArrivalMode
                 + ", userOperated=" + userOperated
-                + ", multiplexed=" + multiplexed + ", status=" + status + "]";
+                + ", aggregation=" + aggregation
+                + ", multiplexed=" + multiplexed 
+                + ", status=" + status + "]";
     }
 }

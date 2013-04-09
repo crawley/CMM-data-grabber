@@ -249,7 +249,21 @@
 						<td><strong>${diags.accessPassword}</strong></td>
 					</tr>
 					<tr>
-						<td colspan="3">Case insensitive datafile matching</td>
+						<td colspan="3">Dataset aggregation mode</td>
+						<td><select name="aggregation" 
+								${edit ? '' : 'readonly="readonly"'}>
+							    <option ${facility.aggregation == 'TEMPLATE' ?
+							    	      ' selected="selected"' : ''}
+							    	    value="TEMPLATE" label="By File Template">
+							    <option ${facility.aggregation == 'DIRECTORY' ?
+							    	      ' selected="selected"' : ''}
+							    	    value="DIRECTORY" label="By Directory">
+							</select>
+						</td>
+						<td><strong>${diags.caseInsensitive}</strong></td>
+					</tr>
+					<tr>
+						<td colspan="3">Case insensitive pathname matching</td>
 						<td><input name="caseInsensitive" type="checkbox"
 								${edit ? '' : 'readonly="readonly"'}
 								${facility.caseInsensitive ? ' checked="checked"' : ''}

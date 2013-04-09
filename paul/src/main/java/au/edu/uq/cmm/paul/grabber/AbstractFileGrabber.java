@@ -106,36 +106,73 @@ public abstract class AbstractFileGrabber implements FileWatcherEventListener {
         Facility facility = (Facility) event.getFacility();
         LOG.debug("FileWatcherEvent received : " + 
                 facility.getFacilityName() + "," + file + "," + event.isCreate());
-        File baseFile = null;
-        for (DatafileTemplateConfig datafile : facility.getDatafileTemplates()) {
-            Pattern pattern = Pattern.compile(datafile.getFilePattern());
-            Matcher matcher = pattern.matcher(file.getAbsolutePath());
-            if (matcher.matches()) {
-                baseFile = new File(matcher.group(1));
-                break;
-            }
+        boolean matched = false;
+        switch (facility.getAggregation()) {
+        case TEMPLATE:
+			matched = aggregateByTemplate(event, file, facility);
+		    break;
+        case DIRECTORY:
+        	matched = aggregateByDirectory(event, file, facility);
+		    break;
         }
-        if (baseFile != null) {
-            synchronized (this) {
-                // If we are shutting down, we only deal with events for
-                // files in datasets we've already started grabbing.
-                if (!isShutDown()) {
-                    WorkEntry workEntry = workMap.get(baseFile);
-                    if (workEntry == null) {
-                        workEntry = new WorkEntry(services, event, baseFile);
-                        workMap.put(baseFile, workEntry);
-                        enqueueWorkEntry(workEntry);
-                        LOG.debug("Added a workEntry");
-                    } else {
-                        workEntry.addEvent(event);
-                    }
-                }
-            }
-        } else {
-            LOG.debug("FileWatcherEvent doesn't match any template : " + 
-                facility.getFacilityName() + "," + file + "," + event.isCreate());
+        if (!matched) {
+        	LOG.debug("FileWatcherEvent doesn't match any template : " + 
+                    facility.getFacilityName() + "," + file + "," + event.isCreate());
         }
     }
+
+	private boolean aggregateByTemplate(FileWatcherEvent event, File file,
+			Facility facility) {
+		File baseFile = null;
+		for (DatafileTemplateConfig datafile : facility.getDatafileTemplates()) {
+			Pattern pattern = Pattern.compile(datafile.getFilePattern());
+			Matcher matcher = pattern.matcher(file.getAbsolutePath());
+			if (matcher.matches()) {
+				baseFile = new File(matcher.group(1));
+				break;
+			}
+		}
+		if (baseFile == null) {
+			return false;
+		}
+		synchronized (this) {
+			// If we are shutting down, we only deal with events for
+			// files in datasets we've already started grabbing.
+			if (!isShutDown()) {
+				WorkEntry workEntry = workMap.get(baseFile);
+				if (workEntry == null) {
+					workEntry = new WorkEntry(services, event, baseFile);
+					workMap.put(baseFile, workEntry);
+					enqueueWorkEntry(workEntry);
+					LOG.debug("Added a workEntry for baseFile " + baseFile);
+				} else {
+					workEntry.addEvent(event);
+				}
+			}
+		}
+		return true;
+	}
+
+	private boolean aggregateByDirectory(FileWatcherEvent event, File file,
+			Facility facility) {
+		File directory = file.getParentFile();
+		synchronized (this) {
+			// If we are shutting down, we only deal with events for
+			// files in datasets we've already started grabbing.
+			if (!isShutDown()) {
+				WorkEntry workEntry = workMap.get(directory);
+				if (workEntry == null) {
+					workEntry = new WorkEntry(services, event, directory);
+					workMap.put(directory, workEntry);
+					enqueueWorkEntry(workEntry);
+					LOG.debug("Added a workEntry for directory " + directory);
+				} else {
+					workEntry.addEvent(event);
+				}
+			}
+		}
+		return true;
+	}
     
     protected abstract boolean isShutDown();
     
