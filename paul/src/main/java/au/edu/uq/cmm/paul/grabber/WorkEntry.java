@@ -507,7 +507,5 @@ class WorkEntry implements Runnable {
         }
         // This will save the updated dataset metadata to the database and file system.
         queueManager.addEntry(dataset, true);
-    }
-    
-    
+    }    
 }

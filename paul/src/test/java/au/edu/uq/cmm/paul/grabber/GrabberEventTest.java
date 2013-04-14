@@ -23,7 +23,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -51,6 +53,7 @@ import au.edu.uq.cmm.paul.PaulException;
 import au.edu.uq.cmm.paul.queue.CopyingQueueFileManager;
 import au.edu.uq.cmm.paul.queue.QueueFileException;
 import au.edu.uq.cmm.paul.queue.QueueManager;
+import au.edu.uq.cmm.paul.status.Aggregation;
 import au.edu.uq.cmm.paul.status.DatafileTemplate;
 import au.edu.uq.cmm.paul.status.Facility;
 import au.edu.uq.cmm.paul.status.FacilityStatus;
@@ -61,6 +64,7 @@ public class GrabberEventTest {
     private static EntityManagerFactory EMF;
     private static FacilityStatusManager FSM;
     private static Facility FACILITY;
+    private static Facility FACILITY_2;
     private static PaulConfiguration CONFIG;
     
     private static Logger LOG = Logger.getLogger(GrabberEventTest.class);
@@ -68,14 +72,22 @@ public class GrabberEventTest {
     @BeforeClass
     public static void setup() {
         EMF = Persistence.createEntityManagerFactory("au.edu.uq.cmm.paul");
-        FACILITY = buildFacility();
+        EntityManager em = EMF.createEntityManager();
+        try {
+            em.getTransaction().begin();
+            em.getTransaction().commit();
+        } finally {
+            em.close();
+        }
+        FACILITY = buildFacility(Aggregation.TEMPLATE);
+        FACILITY_2 = buildFacility(Aggregation.DIRECTORY);
         CONFIG = new PaulConfiguration();
         CONFIG.setCaptureDirectory(prepareDirectory("/tmp/testSafe").toString());
         CONFIG.setArchiveDirectory(prepareDirectory("/tmp/testArchive").toString());
         FSM = buildMockFacilityStatusManager();
     }
     
-    private static Facility buildFacility() {
+    private static Facility buildFacility(Aggregation aggregation) {
         Facility facility = new Facility();
         facility.setFacilityName("test");
         facility.setFileArrivalMode(GrabberFacilityConfig.FileArrivalMode.DIRECT);
@@ -94,6 +106,7 @@ public class GrabberEventTest {
         facility.setDatafileTemplates(Arrays.asList(new DatafileTemplate[] {
                 template, template2
         }));
+        facility.setAggregation(aggregation);
         return facility;
     }
 
@@ -122,19 +135,25 @@ public class GrabberEventTest {
     private static FacilityStatusManager buildMockFacilityStatusManager() {
         FacilityStatusManager fsm = EasyMock.createMock(FacilityStatusManager.class);
         FacilityStatus status = new FacilityStatus();
+        FacilityStatus status2 = new FacilityStatus();
         FacilitySession session = new FacilitySession();
         session.setFacilityName("test");
         session.setUserName("fred");
         session.setAccount("count");
         SessionDetails details = new SessionDetails(session);
         status.setLocalDirectory(new File("/tmp"));
+        status2.setLocalDirectory(new File("/tmp"));
         EasyMock.expect(fsm.getStatus(FACILITY)).andReturn(status).anyTimes();
         EasyMock.expect(fsm.getSession(EasyMock.eq(FACILITY), EasyMock.anyLong())).
         		andReturn(session).anyTimes();
         EasyMock.expect(fsm.getSessionDetails(EasyMock.eq(FACILITY), 
                 EasyMock.anyLong(), EasyMock.anyObject(File.class))).
                 andReturn(details).anyTimes();
+        EasyMock.expect(fsm.getStatus(FACILITY_2)).andReturn(status2).anyTimes();
+        EasyMock.expect(fsm.getSession(EasyMock.eq(FACILITY_2), 
+        			EasyMock.anyLong())).andReturn(session).anyTimes();
         fsm.advanceHWMTimestamp(EasyMock.eq(FACILITY), EasyMock.anyObject(Date.class));
+        fsm.advanceHWMTimestamp(EasyMock.eq(FACILITY_2), EasyMock.anyObject(Date.class));
         EasyMock.expectLastCall().anyTimes();
         EasyMock.replay(fsm);
         return fsm;
@@ -249,6 +268,50 @@ public class GrabberEventTest {
                      "e56f0eef73ade8f79bc1d16a99cbc5e4995afd8c14adb49410ecd957aecc8d02", 
                      datafile.getDatafileHash().toLowerCase());
         assertEquals(new Date(now), dataset.getCaptureTimestamp());
+    }
+    
+    @Test
+    public void testMultipleTextFileDirectory() 
+            throws InterruptedException, JsonGenerationException, IOException, QueueFileException {
+        Capture<DatasetMetadata> capture = new Capture<DatasetMetadata>();
+        QueueManager qm = EasyMock.createMock(QueueManager.class);
+        qm.addEntry(EasyMock.capture(capture), EasyMock.anyBoolean());
+        EasyMock.expectLastCall().times(1);
+        EasyMock.expect(qm.getFileManager()).andReturn(new CopyingQueueFileManager(CONFIG)).anyTimes();
+        EasyMock.replay(qm);
+        FACILITY_2.setFileSettlingTime(1000);
+        FileGrabber fg = new FileGrabber(buildMockServices(CONFIG, qm), FACILITY_2, true);
+        long now = System.currentTimeMillis();
+        try {
+            File[] files = new File[10];
+            for (int i = 0; i < files.length; i++) {
+            	files[i] = new File("/tmp/file-" + i + ".txt");
+            	stringToFile(files[i] + ": 123456789012345678901234567890\n", files[i]);
+            }
+            fg.startup();
+            long tmp = now;
+            for (int i = 0; i < files.length; i++) {
+                fg.eventOccurred(new FileWatcherEvent(FACILITY_2, files[i], true, tmp, false));
+                tmp = System.currentTimeMillis();
+                Thread.sleep(100);
+            }
+        } finally {
+            fg.shutdown();
+        }
+        EasyMock.verify(qm);
+        DatasetMetadata dataset = capture.getValue();
+        assertEquals("fred", dataset.getUserName());
+        assertEquals("count", dataset.getAccountName());
+        assertEquals(10, dataset.getDatafiles().size());
+        for (DatafileMetadata datafile : dataset.getDatafiles()) {
+        	File file = new File(datafile.getCapturedFilePathname());
+        	assertTrue(file.exists());
+        	String name = datafile.getSourceFilePathname();
+        	try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        		assertEquals(name + ": 123456789012345678901234567890", br.readLine());
+        	}
+        	assertEquals(new Date(now), dataset.getCaptureTimestamp());
+        }
     }
     
     @Test
