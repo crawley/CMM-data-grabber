@@ -349,9 +349,9 @@ public class QueueManager {
     }
     
     public DatasetMetadata fetchDataset(long id) {
-        EntityManager entityManager = createEntityManager();
+        EntityManager em = createEntityManager();
         try {
-            TypedQuery<DatasetMetadata> query = entityManager.createQuery(
+            TypedQuery<DatasetMetadata> query = em.createQuery(
                     "from DatasetMetadata m " +
                     "left join fetch m.datafiles where m.id = :id", 
                     DatasetMetadata.class);
@@ -360,7 +360,7 @@ public class QueueManager {
         } catch (NoResultException ex) {
             return null;
         } finally {
-            entityManager.close();
+            em.close();
         }
     }
     

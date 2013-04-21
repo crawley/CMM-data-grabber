@@ -101,7 +101,7 @@ public class QueueFeedAdapter extends AbstractEntityCollectionAdapter<DatasetMet
         if (!control.isAtomFeedEnabled()) {
             throw new ResponseContextException(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
-        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        EntityManager em = entityManagerFactory.createEntityManager();
         try {
             TypedQuery<DatasetMetadata> query;
             Long id;
@@ -113,14 +113,14 @@ public class QueueFeedAdapter extends AbstractEntityCollectionAdapter<DatasetMet
             }
             if (id != null) {
                 LOG.debug("Fetching from id " + id);
-                query = entityManager.createQuery(
+                query = em.createQuery(
                         "from DatasetMetadata m where m.id <= :id " +
                         (holdDatasetsWithNoUser ? "and m.userName is not null " : "") +
                         "order by m.updateTimestamp desc, m.id desc", 
                         DatasetMetadata.class).setParameter("id", id);
             } else {
                 LOG.debug("Fetching from start of queue");
-                query = entityManager.createQuery(
+                query = em.createQuery(
                         "from DatasetMetadata m " +
                         (holdDatasetsWithNoUser ? "where m.userName is not null " : "") +
                         "order by m.updateTimestamp desc, m.id desc", 
@@ -132,7 +132,7 @@ public class QueueFeedAdapter extends AbstractEntityCollectionAdapter<DatasetMet
                       ", fetched " + res.size());
             return res;
         } finally {
-            entityManager.close();
+            em.close();
         }
     }
 
@@ -143,10 +143,10 @@ public class QueueFeedAdapter extends AbstractEntityCollectionAdapter<DatasetMet
             throw new ResponseContextException(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         }
         String[] parts = resourceName.split("-");
-        EntityManager entityManager = entityManagerFactory.createEntityManager();
+        EntityManager em = entityManagerFactory.createEntityManager();
         try {
             DatasetMetadata record = 
-                    entityManager.createQuery("from DatasetMetadata a where a.id = :id", 
+                    em.createQuery("from DatasetMetadata a where a.id = :id", 
                     DatasetMetadata.class).setParameter("id", parts[0]).getSingleResult();
             if (record == null) {
                 throw new ResponseContextException(HttpServletResponse.SC_NOT_FOUND);
@@ -154,7 +154,7 @@ public class QueueFeedAdapter extends AbstractEntityCollectionAdapter<DatasetMet
                 return record;
             }
         } finally {
-            entityManager.close();
+            em.close();
         }
     }
 

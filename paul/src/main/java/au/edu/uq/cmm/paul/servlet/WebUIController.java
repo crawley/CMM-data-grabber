@@ -1102,9 +1102,9 @@ public class WebUIController implements ServletContextAware {
     }
     
     private DatafileMetadata fetchMetadata(File file) {
-        EntityManager entityManager = createEntityManager();
+        EntityManager em = createEntityManager();
         try {
-            TypedQuery<DatafileMetadata> query = entityManager.createQuery(
+            TypedQuery<DatafileMetadata> query = em.createQuery(
                     "from DatafileMetadata d where d.capturedFilePathname = :pathName", 
                     DatafileMetadata.class);
             query.setParameter("pathName", file.getAbsolutePath());
@@ -1112,7 +1112,7 @@ public class WebUIController implements ServletContextAware {
         } catch (NoResultException ex) {
             return null;
         } finally {
-            entityManager.close();
+            em.close();
         }
     }
     

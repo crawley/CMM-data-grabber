@@ -35,6 +35,7 @@ import javax.persistence.TypedQuery;
 import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import au.edu.uq.cmm.aclslib.config.ConfigurationException;

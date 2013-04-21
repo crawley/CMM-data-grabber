@@ -139,7 +139,7 @@ public class ConfigurationManager {
         EntityManager em = entityManagerFactory.createEntityManager();
         try {
             PaulConfiguration newConfig = new PaulConfiguration(staticConfig);
-            EcclesProxyConfiguration newProxyConfig = new EcclesProxyConfiguration(staticProxyConfig);
+            EcclesProxyConfiguration newProxyConfig = new EcclesProxyConfigurati
             // FIXME - we do two transactions.  Combining the two transactions 
             // into one transaction is gives constraint errors when adding the new
             // facilities.  (The fix is to version the configurations.)
@@ -170,6 +170,7 @@ public class ConfigurationManager {
             }
             em.getTransaction().commit();
             
+        	PaulConfiguration newConfig = new PaulConfiguration(staticConfig);
             // Second transaction
             em.getTransaction().begin();
             em.persist(newConfig);

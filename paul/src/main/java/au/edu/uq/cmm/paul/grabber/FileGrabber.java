@@ -186,8 +186,4 @@ public class FileGrabber extends AbstractFileGrabber implements SimpleService {
             }
         }
     }
-
-    public EntityManager getEntityManager() {
-        return entityManagerFactory.createEntityManager();
-    }
 }

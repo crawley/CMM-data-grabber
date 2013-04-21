@@ -72,13 +72,6 @@ public class GrabberEventTest {
     @BeforeClass
     public static void setup() {
         EMF = Persistence.createEntityManagerFactory("au.edu.uq.cmm.paul");
-        EntityManager em = EMF.createEntityManager();
-        try {
-            em.getTransaction().begin();
-            em.getTransaction().commit();
-        } finally {
-            em.close();
-        }
         FACILITY = buildFacility(Aggregation.TEMPLATE);
         FACILITY_2 = buildFacility(Aggregation.DIRECTORY);
         CONFIG = new PaulConfiguration();
