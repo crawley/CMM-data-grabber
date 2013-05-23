@@ -1,0 +1,37 @@
+<c:if test="${pageSize == 0}">
+    <form method="GET">
+		<button type="submit">Show in pages</button>
+		<input type="hidden" name="pageSize" value="100">
+		<input type="hidden" name="resultSetOffset" value="0">
+		<input type="hidden" name="slice" value="${slice}">
+		<input type="hidden" name="facilityName" value="${facilityName}">
+	</form>
+</c:if>
+<c:if test="${pageSize > 0 and resultSetOffset > 0}">
+	<form method="GET">
+		<button type="submit">Previous page</button>
+		<input type="hidden" name="pageSize" value="${pageSize}">
+		<input type="hidden" name="resultSetOffset" 
+				value="${resultSetOffset - pageSize}">
+		<input type="hidden" name="slice" value="${slice}">
+		<input type="hidden" name="facilityName" value="${facilityName}">
+	</form>
+</c:if>
+<c:if test="${pageSize > 0 and hasMore}">
+	<form method="GET">
+		<button type="submit">Next page</button>
+		<input type="hidden" name="pageSize" value="${pageSize}">
+		<input type="hidden" name="resultSetOffset" value="${resultSetOffset}">
+		<input type="hidden" name="slice" value="${slice}">
+		<input type="hidden" name="facilityName" value="${facilityName}">
+	</form>
+</c:if>
+<c:if test="${pageSize > 0}">
+	<form method="GET">
+		<button type="submit">All entries</button>
+		<input type="hidden" name="pageSize" value="0">
+		<input type="hidden" name="resultSetOffset" value="0">
+		<input type="hidden" name="slice" value="${slice}">
+		<input type="hidden" name="facilityName" value="${facilityName}">
+	</form>
+</c:if>
