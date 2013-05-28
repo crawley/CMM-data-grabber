@@ -41,6 +41,7 @@ import au.edu.uq.cmm.paul.Paul;
 import au.edu.uq.cmm.paul.PaulConfiguration;
 import au.edu.uq.cmm.paul.grabber.DatafileMetadata;
 import au.edu.uq.cmm.paul.grabber.DatasetMetadata;
+import au.edu.uq.cmm.paul.servlet.ResultPaging;
 import au.edu.uq.cmm.paul.status.Facility;
 
 /**
@@ -97,7 +98,8 @@ public class QueueManager {
         this.fileManager = new CopyingQueueFileManager(config);
     }
 
-    public List<DatasetMetadata> getSnapshot(Slice slice, String facilityName, boolean fetchDatafiles) {
+    public List<DatasetMetadata> getSnapshot(Slice slice, ResultPaging paging, 
+    		String facilityName, boolean fetchDatafiles) {
         EntityManager em = createEntityManager();
         try {
             String whereClause;
@@ -127,7 +129,20 @@ public class QueueManager {
                         "order by m.id", DatasetMetadata.class);
                 query.setParameter("name", facilityName);
             }
+            if (paging.getPageSize() > 0) {
+            	query.setFirstResult(Math.max(0, paging.getResultSetOffset()));
+            	query.setMaxResults(paging.getPageSize() + 1);
+            }
             List<DatasetMetadata> res = query.getResultList();
+            if (paging.getPageSize() > 0) {
+            	if (res.size() == paging.getPageSize() + 1) {
+            		res.remove(res.size());
+            		paging.setHasMore(true);
+            		paging.setResultSetOffset(paging.getResultSetOffset() + res.size());
+            	} else {
+            		paging.setHasMore(false);
+            	}
+            }
             if (fetchDatafiles) {
                 for (DatasetMetadata ds : res) {
                     ds.getDatafiles().size();  // populate from resultset ...
@@ -139,8 +154,8 @@ public class QueueManager {
         }
     }
 
-    public List<DatasetMetadata> getSnapshot(Slice slice) {
-        return getSnapshot(slice, null, true);
+    public List<DatasetMetadata> getSnapshot(Slice slice, ResultPaging paging) {
+        return getSnapshot(slice, paging, null, true);
     }
 
     public DateRange getQueueDateRange(Facility facility) {

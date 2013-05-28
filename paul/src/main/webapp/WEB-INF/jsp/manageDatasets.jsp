@@ -31,6 +31,7 @@ function selectAll(checked) {
 			<c:if test="${!empty message}">
 				<div class="alert alert-error">${message}</div>
 			</c:if>
+			<%@ include file="/WEB-INF/jsp/paging.jspFrag" %>
 			<c:choose>
 				<c:when test="${!empty datasets}">
 					<table class="table table-striped table-bordered table-condensed">

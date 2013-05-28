@@ -632,29 +632,35 @@ public class WebUIController implements ServletContextAware {
         }
     }
     
-    @RequestMapping(value="/queue/held", method=RequestMethod.GET)
-    public String held(Model model) {
-        model.addAttribute("queue", 
-                getQueueManager().getSnapshot(Slice.HELD));
-        return "held";
-    }
-    
-    @RequestMapping(value="/queue/ingestible", method=RequestMethod.GET)
-    public String queue(Model model) {
-        model.addAttribute("queue", 
-                getQueueManager().getSnapshot(Slice.INGESTIBLE));
-        return "queue";
-    }
+//    @RequestMapping(value="/queue/held", method=RequestMethod.GET)
+//    public String held(Model model, HttpServletRequest request) {
+//    	ResultPaging paging = getPagingParameters(request);
+//        model.addAttribute("queue", 
+//                getQueueManager().getSnapshot(Slice.HELD, paging));
+//        addPagingAttributes(model, paging);
+//        return "held";
+//    }
+//    
+//    @RequestMapping(value="/queue/ingestible", method=RequestMethod.GET)
+//    public String queue(Model model, HttpServletRequest request) {
+//    	ResultPaging paging = getPagingParameters(request);
+//        model.addAttribute("queue", 
+//                getQueueManager().getSnapshot(Slice.INGESTIBLE, paging));
+//        addPagingAttributes(model, paging);
+//        return "queue";
+//    }
     
     @RequestMapping(value="/claimDatasets", method=RequestMethod.GET)
     public String showClaimDatasets(Model model, 
             HttpServletRequest request, HttpServletResponse response,
             @RequestParam String facilityName) 
     throws IOException {
+    	ResultPaging paging = getPagingParameters(request);
         model.addAttribute("facilityName", facilityName);
         model.addAttribute("returnTo", inferReturnTo(request));
-        model.addAttribute("datasets", 
-                getQueueManager().getSnapshot(Slice.HELD, facilityName, true));
+        model.addAttribute("datasets", getQueueManager().getSnapshot(
+        		Slice.HELD, paging, facilityName, true));
+        addPagingAttributes(model, paging);
         return "claimDatasets";
     }
     
@@ -673,11 +679,13 @@ public class WebUIController implements ServletContextAware {
         }
         model.addAttribute("returnTo", inferReturnTo(request));
         if (ids == null) {
+        	ResultPaging paging = getPagingParameters(request);
             model.addAttribute("facilityName", facilityName);
-            model.addAttribute("datasets", 
-                    getQueueManager().getSnapshot(Slice.HELD, facilityName, true));
+            model.addAttribute("datasets", getQueueManager().getSnapshot(
+                    Slice.HELD, paging, facilityName, true));
             model.addAttribute("message", "Check the checkboxes for the " +
                     "Datasets you want to claim");
+            addPagingAttributes(model, paging);
             return "claimDatasets";
         }
         if (!principal.hasRole("ROLE_ACLS_USER")) {
@@ -704,13 +712,15 @@ public class WebUIController implements ServletContextAware {
             @RequestParam(required=false) String slice,
             @RequestParam String facilityName) 
     throws IOException {
+    	ResultPaging paging = getPagingParameters(request);
         model.addAttribute("facilityName", facilityName);
         model.addAttribute("returnTo", inferReturnTo(request));
         Slice s = inferSlice(slice);
         model.addAttribute("slice", s);
-        model.addAttribute("datasets", 
-                getQueueManager().getSnapshot(s, facilityName, true));
+        model.addAttribute("datasets", getQueueManager().getSnapshot(
+        		s, paging, facilityName, true));
         model.addAttribute("userNames", getUserDetailsManager().getUserNames());
+        addPagingAttributes(model, paging);
         return "manageDatasets";
     }
     
@@ -760,7 +770,7 @@ public class WebUIController implements ServletContextAware {
         }
         QueueManager qm = getQueueManager();
         if (ids == null) {
-            return retryManage(model, 
+            return retryManage(model, request, 
                     "Check the checkboxes for the Datasets you want to " + action,
                     qm, s, facilityName);
         } 
@@ -782,7 +792,8 @@ public class WebUIController implements ServletContextAware {
             		// Check the name is known
             		getUserDetailsManager().lookupUser(userName, false);
             	} catch (UserDetailsException ex) {
-            		return retryManage(model, "User '" + userName + "' is not known.",
+            		return retryManage(model, request, 
+            				"User '" + userName + "' is not known.",
             		        qm, s, facilityName);
             	}
                 nosChanged = qm.changeUser(ids, userName, true);
@@ -801,15 +812,42 @@ public class WebUIController implements ServletContextAware {
         }
     }
     
-    private String retryManage(Model model, String message, 
+    private String retryManage(Model model, HttpServletRequest request, String message, 
             QueueManager qm, Slice s, String facilityName) {
-        model.addAttribute("datasets", qm.getSnapshot(s, facilityName, true));
+    	ResultPaging paging = getPagingParameters(request);
+        model.addAttribute("datasets", qm.getSnapshot(s, paging, facilityName, true));
         model.addAttribute("userNames", getUserDetailsManager().getUserNames());
         model.addAttribute("message", message);
+        addPagingAttributes(model, paging);
         return "manageDatasets";
     }
     
-    private String verbiage(int count, String singular, String plural, String verbed) {
+    private void addPagingAttributes(Model model, ResultPaging paging) {
+		model.addAttribute("pageSize", paging.getPageSize());
+		model.addAttribute("hasMore", paging.isHasMore());
+		model.addAttribute("resultSetOffset", paging.getResultSetOffset());
+	}
+
+    private ResultPaging getPagingParameters(HttpServletRequest request) {
+    	try {
+    		String pageSize = request.getParameter("pageSize");
+    		if (pageSize == null || Integer.parseInt(pageSize) == 0) {
+    			return new ResultPaging(0, 0);
+    		}
+    		String resultSetOffset = request.getParameter("resultSetOffset");
+    		if (resultSetOffset == null) {
+    			return new ResultPaging(Integer.parseInt(pageSize), 0);
+    		} else {
+    			return new ResultPaging(
+    					Integer.parseInt(pageSize), 
+    					Integer.parseInt(resultSetOffset));
+    		}
+    	} catch (NumberFormatException ex) {
+    		return new ResultPaging(0, 0);
+    	}
+    }
+
+	private String verbiage(int count, String singular, String plural, String verbed) {
         if (count == 0) {
             return "No " + plural + " " + verbed;
         } else if (count == 1) {
